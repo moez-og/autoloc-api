@@ -1,0 +1,528 @@
+{
+  "info": {
+    "name": "AutoLoc-API",
+    "description": "Démonstration ASI. Réglez baseUrl sur le port de votre serveur AutoLoc et lancez la collection dans l’ordre. Le parcours crée des données de démonstration dans la base utilisée par ce serveur.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 · Créer l’agence",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const suffixe = Date.now().toString(36).toUpperCase();",
+              "pm.collectionVariables.set(\"suffixe\", suffixe);",
+              "const debut = new Date();",
+              "debut.setUTCHours(12, 0, 0, 0);",
+              "debut.setUTCDate(debut.getUTCDate() + 7);",
+              "debut.setUTCDate(debut.getUTCDate() + (5 - debut.getUTCDay() + 7) % 7);",
+              "const fin = new Date(debut);",
+              "fin.setUTCDate(fin.getUTCDate() + 3);",
+              "pm.collectionVariables.set(\"dateDebut\", debut.toISOString().slice(0, 10));",
+              "pm.collectionVariables.set(\"dateFin\", fin.toISOString().slice(0, 10));",
+              "pm.collectionVariables.set(\"datePaiement\", new Date().toISOString().slice(0, 10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code !== 201) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 201) {",
+              "    const id = pm.response.json().idAgence;",
+              "    pm.test(\"Identifiant idAgence retourné\", function () {",
+              "        pm.expect(id).to.be.a(\"number\").and.to.be.above(0);",
+              "    });",
+              "    pm.collectionVariables.set(\"agenceId\", id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/agences",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"AutoLoc Tunis démo {{suffixe}}\",\n  \"ville\": \"Tunis\",\n  \"adresse\": \"Avenue de la Liberté\",\n  \"telephone\": \"71123456\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 · Créer la Clio de l’agence",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code !== 201) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 201) {",
+              "    const id = pm.response.json().idVehicule;",
+              "    pm.test(\"Identifiant idVehicule retourné\", function () {",
+              "        pm.expect(id).to.be.a(\"number\").and.to.be.above(0);",
+              "    });",
+              "    pm.collectionVariables.set(\"vehiculeId\", id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/vehicules",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"immatriculation\": \"ASI-{{suffixe}}\",\n  \"marque\": \"Renault\",\n  \"modele\": \"Clio\",\n  \"categorie\": \"CITADINE\",\n  \"tarifJournalier\": 60,\n  \"statut\": \"DISPONIBLE\",\n  \"agenceId\": {{agenceId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 · Relire la Clio et son affectation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code !== 200) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"La Clio est rattachée à l’agence créée\", function () {",
+              "        pm.expect(pm.response.json().agenceId).to.eql(Number(pm.collectionVariables.get(\"agenceId\")));",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/vehicules/{{vehiculeId}}"
+      },
+      "response": []
+    },
+    {
+      "name": "04 · Créer la cliente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code !== 201) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 201) {",
+              "    const id = pm.response.json().idClient;",
+              "    pm.test(\"Identifiant idClient retourné\", function () {",
+              "        pm.expect(id).to.be.a(\"number\").and.to.be.above(0);",
+              "    });",
+              "    pm.collectionVariables.set(\"clientId\", id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/clients",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom\": \"Ben Salem\",\n  \"prenom\": \"Lina\",\n  \"email\": \"lina.{{suffixe}}@example.com\",\n  \"telephone\": \"22123456\",\n  \"numPermis\": \"ASI-{{suffixe}}\",\n  \"dateInscription\": \"{{datePaiement}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 · Vérifier les disponibilités de Tunis",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code !== 200) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Une page de résultats est retournée\", function () {",
+              "        pm.expect(pm.response.json().contenu).to.be.an(\"array\");",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/metier/vehicules-disponibles?du={{dateDebut}}&au={{dateFin}}&ville=Tunis&page=0&taille=10"
+      },
+      "response": []
+    },
+    {
+      "name": "06 · Calculer le devis du vendredi au lundi",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code !== 200) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Le devis de trois jours vaut 204 DT\", function () {",
+              "        const devis = pm.response.json();",
+              "        pm.expect(devis.jours).to.eql(3);",
+              "        pm.expect(devis.montantTotal).to.eql(204);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/metier/devis",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vehiculeId\": {{vehiculeId}},\n  \"dateDebut\": \"{{dateDebut}}\",\n  \"dateFin\": \"{{dateFin}}\",\n  \"equipementIds\": []\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 · Réserver la Clio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code !== 201) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 201) {",
+              "    const id = pm.response.json().idReservation;",
+              "    pm.test(\"Identifiant idReservation retourné\", function () {",
+              "        pm.expect(id).to.be.a(\"number\").and.to.be.above(0);",
+              "    });",
+              "    pm.collectionVariables.set(\"reservationId\", id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/metier/reservations",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clientId\": {{clientId}},\n  \"vehiculeId\": {{vehiculeId}},\n  \"dateDebut\": \"{{dateDebut}}\",\n  \"dateFin\": \"{{dateFin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 · Signer le contrat",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code !== 201) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 201) {",
+              "    const id = pm.response.json().idContrat;",
+              "    pm.test(\"Identifiant idContrat retourné\", function () {",
+              "        pm.expect(id).to.be.a(\"number\").and.to.be.above(0);",
+              "    });",
+              "    pm.collectionVariables.set(\"contratId\", id);",
+              "    pm.test(\"Le contrat reprend les 204 DT du devis\", function () {",
+              "        pm.expect(pm.response.json().montantTotal).to.eql(204);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/metier/reservations/{{reservationId}}/signer",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"equipementIds\": []\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 · Enregistrer un acompte",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code !== 201) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 201) {",
+              "    const id = pm.response.json().idPaiement;",
+              "    pm.test(\"Identifiant idPaiement retourné\", function () {",
+              "        pm.expect(id).to.be.a(\"number\").and.to.be.above(0);",
+              "    });",
+              "    pm.collectionVariables.set(\"paiementId\", id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/paiements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"montant\": 60,\n  \"datePaiement\": \"{{datePaiement}}\",\n  \"modePaiement\": \"CARTE\",\n  \"contratId\": {{contratId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10 · Consulter les recettes par agence",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code !== 200) {",
+              "    pm.execution.setNextRequest(null);",
+              "}",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"L’agence de démo a encaissé 60 DT\", function () {",
+              "        const id = Number(pm.collectionVariables.get(\"agenceId\"));",
+              "        const recette = pm.response.json().find(ligne => ligne.agenceId === id);",
+              "        pm.expect(recette).to.be.an(\"object\");",
+              "        pm.expect(recette.montantEncaisse).to.eql(60);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/metier/statistiques/recettes"
+      },
+      "response": []
+    },
+    {
+      "name": "11 · Lire les réservations de Lina",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code !== 200) {",
+              "    pm.execution.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/metier/clients/{{clientId}}/reservations?page=0&taille=10"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8082",
+      "type": "string"
+    },
+    {
+      "key": "suffixe",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dateDebut",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dateFin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "datePaiement",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "agenceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vehiculeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reservationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "contratId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paiementId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

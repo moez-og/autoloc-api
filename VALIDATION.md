@@ -81,6 +81,16 @@ Pour montrer l'affectation transactionnelle, essaie `PUT /api/associations/vehic
 
 Pour expliquer la clôture, montre la tâche planifiée et la route `POST /api/metier/clotures`. Le bilan contient les identifiants des contrats qui arrivent à échéance. L'appel HTTP exige le jeton de responsable configuré au démarrage avec `AUTOLOC_MANAGER_TOKEN` et transmis en `Authorization: Bearer ...`.
 
+## Démonstration Spring AOP — Séance 13
+
+1. Démarre la version à jour dans IntelliJ et ouvre Swagger. Dans **Véhicules**, exécute `GET /api/vehicules/{id}` avec l'identifiant d'une voiture existante. Montre le `200` puis la console **Run** d'IntelliJ. Tu verras `Début méthode CrudService.obtenir(..)`, le log de fin et la durée en millisecondes.
+2. Répète avec un identifiant absent. Montre le `404` puis le log `Échec de CrudService.obtenir(..) (RessourceIntrouvableException)`. Le service transmet toujours son exception au gestionnaire HTTP.
+3. Pour montrer `@AfterReturning`, ajoute `--logging.level.tn.esprit.autoloc.aspect.LoggingAspect=DEBUG` aux arguments de lancement. Le log `Retour normal` apparaît après l'appel réussi. Un appel de plus de 1 000 ms affiche un `WARN`.
+
+Le **pointcut** sélectionne les méthodes publiques des beans `@Service` du package `service` et de ses sous-packages. Le **join point** est une exécution concrète, par exemple celle de `CrudService.obtenir(..)`. Les **advices** indiquent quand agir. `@Before` journalise l'entrée, `@After` la sortie dans les deux cas, `@AfterReturning` le retour normal, `@AfterThrowing` le type de l'exception et `@Around` mesure la durée autour de `proceed()`. Les logs affichent les paramètres simples utiles à la démo. Le texte libre et les objets sont masqués.
+
+Spring crée le **proxy** au démarrage. Un appel au service depuis le contrôleur traverse ce proxy. Un appel interne à la même instance, par exemple `obtenir()` qui appelle `exiger()`, contourne le proxy. À l'oral, explique que le proxy permet d'ajouter la journalisation à plusieurs méthodes en un seul endroit.
+
 ## Récap des ateliers et des séances
 
 Le guide nomme **Atelier 0** l'installation. L'**Atelier 1** correspond à la séance 2 et l'**Atelier 2** à la séance 3. Les sujets suivants sont repérés par leurs séances dans le plan du module.
@@ -98,8 +108,8 @@ Le guide nomme **Atelier 0** l'installation. L'**Atelier 1** correspond à la s�
 | Séance 9 — DTO, validation et réorganisation du code | Un DTO fixe les champs du JSON, par exemple les identifiants d'associations. `@Valid` déclenche les contraintes de la requête. Pour la démo, un tarif journalier négatif, une réservation dont la fin précède le début ou un champ obligatoire manquant donnent `400`. |
 | Séance 10 — Requêtes dérivées, JPQL et statistiques | Dans `ReservationRepository`, `findByClient_IdClientOrderByDateDebutDescIdReservationDesc` suit le lien `client.idClient`, puis trie les réservations. JPQL interroge les entités et leurs attributs. Pour deux réservations en intervalles `[du, au[`, un chevauchement vérifie `dateDebut < au` et `dateFin > du`. Pagination et agrégations limitent les résultats et calculent les indicateurs. |
 | Séance 11 — Spring Scheduler | `ContratEcheanceScheduler` lance la clôture chaque jour à 1 h, heure de Tunis, par défaut. Une réservation confirmée devient terminée lorsque sa date de fin est atteinte. Le bilan compte aussi les véhicules libérés, les locations activées et les contrats qui se terminent dans les trois prochains jours. |
-| Séance 12 — Spring AOP | `PerformanceAspect` mesure et journalise les appels. `ControleRoleAspect` vérifie le jeton requis avant la route de clôture et répond `403` si l'autorisation manque. |
-| Séance 13 — Qualité logicielle | Les tests donnent une preuve sur des comportements identifiés. La couverture indique quelles lignes ou branches s'exécutent pendant les tests. Les métriques de complexité et la dette technique servent à choisir les améliorations prioritaires. SonarQube est indiqué comme optionnel dans l'étude de cas. |
+| Spring AOP — support Séance 13 | `LoggingAspect` journalise les appels, `PerformanceAspect` mesure leur durée et `ExceptionHandlingAspect` signale les exceptions. `ControleRoleAspect` vérifie le jeton requis avant la route de clôture. |
+| Qualité logicielle | Les tests donnent une preuve sur des comportements identifiés. La couverture indique quelles lignes ou branches s'exécutent pendant les tests. Les métriques de complexité et la dette technique servent à choisir les améliorations prioritaires. SonarQube est indiqué comme optionnel dans l'étude de cas. |
 | Séance 14 — Révision pratique | Rejoue le fil `requête HTTP → contrôleur → service → repository → Hibernate → MariaDB`. Prépare un exemple 1–N, un exemple N–N et un exemple 1–1, puis une création suivie d'une lecture dans Swagger. |
 
 ## Associations AutoLoc à retrouver à l'oral
@@ -128,7 +138,7 @@ Pour chaque ressource, `GET` liste ou lit par identifiant, `POST` crée, `PUT` m
 - Le résultat de `.\mvnw.cmd test` dans la console Maven.
 - Le commit local avec `git log -1 --oneline`. La remise sur GitHub demande l'URL du dépôt d'équipe.
 
-Le rapport Surefire dans `target/surefire-reports` recense 7 tests Maven, dont la génération et la navigation du modèle JPA et les cascades. Le scénario sur MariaDB a vérifié 105 réponses HTTP, les 45 opérations CRUD dans OpenAPI, la disponibilité, la tarification et le contrôle d'accès à la clôture.
+Le rapport Surefire dans `target/surefire-reports` recense les tests Maven du modèle JPA, des cascades et des aspects. Le scénario sur MariaDB a vérifié 105 réponses HTTP, les 45 opérations CRUD dans OpenAPI, la disponibilité, la tarification et le contrôle d'accès à la clôture.
 
 Pour la séance qualité, les tests locaux couvrent des comportements observables. Un point à mesurer lors d'un audit plus poussé est le nombre de requêtes SQL lors d'une liste qui affiche des associations. Le projet utilise une porte de démonstration par jeton partagé pour la clôture. Une gestion d'identités et de rôles par compte serait une évolution distincte.
 
@@ -137,4 +147,5 @@ Pour la séance qualité, les tests locaux couvrent des comportements observable
 - `Atelier0_Guide de mise en place de l'environnement.pdf`, pages 1 et 4–5.
 - `Atelier 1 - Spring Boot & 1ère Entité.pdf`, pages 7–8.
 - `Etude de cas_AutoLoc_ASI.pdf`, pages 1–2 pour le plan, 4–5 pour le modèle et 6–8 pour l'architecture.
+- `Séance 13 - Spring AOP.pdf`, diapositives 13–27 pour les concepts et 28–31 pour les trois TP.
 - Chapitre 1, diapo 2, ainsi que chapitres 5 et 6. Le chapitre Spring MVC illustre le CRUD avec le projet pédagogique `gestion-projets`. La diapo 13 de SpringDoc demande d'appliquer le CRUD aux entités de l'étude de cas.
